@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Button,
   Dialog,
@@ -11,15 +11,19 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { toast } from "react-toastify";
 import { updateUserPostApi } from "../service/allApi";
 import { serverUrl } from "../service/serviceUrl";
+import { editProjectResponse } from "../context/ContextShare";
 
-function EditPost({ post }) {
+function EditPost({ post, Public }) {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState("");
   const [postDetails, setPostDetails] = useState({
     title: post.title,
     content: post.content,
     postImg: "",
+    
   });
+  const {setEditResponse} = useContext(editProjectResponse)
+
 
   const handleOpen = () => setOpen(!open);
 
@@ -49,6 +53,7 @@ function EditPost({ post }) {
     const reqBody = new FormData();
     reqBody.append("title", title);
     reqBody.append("content", content);
+
     
     if (postImg) {
       reqBody.append("postImg", postImg);
@@ -65,6 +70,7 @@ function EditPost({ post }) {
     try {
       const result = await updateUserPostApi(post._id, reqBody, reqHeader);
       if (result.status === 200) {
+        setEditResponse(result)
         toast.success("Post updated successfully");
         setTimeout(() => handleOpen(), 2000);
       } else {

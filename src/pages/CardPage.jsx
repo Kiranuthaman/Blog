@@ -71,7 +71,7 @@ function CardPage() {
                       allComments.map((comment, index) => (
                         <div key={index} className="bg-gray-200 p-4 rounded-lg">
                           <div className="flex justify-between items-center mb-2">
-                            <span className="font-semibold">{comment.author || "Anonymous"}</span>
+                            {/* <span className="font-semibold">{comment.author || "Anonymous"}</span> */}
                           </div>
                           <p className="text-gray-700">{comment.content}</p>
                         </div>

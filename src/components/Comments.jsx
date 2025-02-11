@@ -89,7 +89,7 @@ function Comments({ postId }) {
           {newComment && (
             <div className="bg-gray-200 p-4 rounded-lg">
               <div className="flex justify-between items-center mb-2">
-                <span className="font-semibold">You</span>
+                {/* <span className="font-semibold">You</span> */}
               </div>
               <p className="text-gray-700">{newComment.content}</p>
             </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Button,
   Dialog,
@@ -8,8 +8,10 @@ import {
 } from "@material-tailwind/react";
 import { ToastContainer, toast } from 'react-toastify';
 import { addPostApi } from "../service/allApi";
+import { addResponseContext } from "../context/ContextShare";
 
 function AddPost() {
+   const {setAddResponse} = useContext(addResponseContext)
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState("");
   const [token, setToken] = useState(sessionStorage.getItem("token") || ""); // Get token initially
@@ -70,6 +72,7 @@ function AddPost() {
 
       if (result?.status === 200) {
         toast.success("Post added successfully!");
+        setAddResponse(result)
         setTimeout(() => {
           setOpen(false); // Ensure modal closes
           setPostDetails({ title: "", content: "", postImg: null }); // Clear form

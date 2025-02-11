@@ -1,20 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import Header from '../components/Header';
 import UserCard from '../components/UserCard';
-import { allPostApi } from '../service/allApi';
+import { allPostApi, likePostApi } from '../service/allApi';
+import { likePostResponse } from '../context/ContextShare';
 
 function Home() {
   const [allPost, setAllPost] = useState([]);
   const [searchKey, setSearchKey] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [posts, setPosts] = useState([]);
+  const { likResponse, setLikeResponse } = useContext(likePostResponse);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 4; 
 
-  const getAllPost = async () => {
+  // Fetch posts
+  const getAllPost = useCallback(async () => {
     setLoading(true);
     if (sessionStorage.getItem("token")) {
       setIsLoggedIn(true);
@@ -25,8 +27,14 @@ function Home() {
           "Authorization": `Bearer ${token}`,
         };
         const result = await allPostApi(searchKey, reqHeader);
-        setAllPost(result.data);
-        setCurrentPage(1); // Reset to first page on new search
+        
+        // Filter and sort posts
+        const filteredPosts = result.data
+          .filter(post => post.public === true)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        setAllPost(filteredPosts);
+        setCurrentPage(1);  // Reset pagination on new search
       } catch (error) {
         console.error("Error fetching posts:", error);
       }
@@ -34,28 +42,44 @@ function Home() {
       setIsLoggedIn(false);
     }
     setLoading(false);
-  };
+  }, [searchKey, likResponse]); // Add likResponse to dependencies to update on like changes
 
   useEffect(() => {
     getAllPost();
-  }, [searchKey]); // Ensure it runs on search change
+  }, [getAllPost]);
+
+  // Handle Like
+  const handleLike = async (postId) => {
+    if (!sessionStorage.getItem("token")) return;
+
+    const token = sessionStorage.getItem("token");
+    const reqHeader = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+
+    try {
+      const response = await likePostApi(postId, reqHeader);
+      if (response && response.data) {
+        setLikeResponse(response.data);
+        setAllPost((prevPosts) =>
+          prevPosts.map((p) => 
+            p._id === postId ? { ...p, likes: response.data.likes, liked: true } : p
+          )
+        );
+      } else {
+        throw new Error("Failed to update like count");
+      }
+    } catch (error) {
+      console.error("Error liking post:", error);
+    }
+  };
 
   // Pagination Logic
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
   const currentPosts = allPost.slice(indexOfFirstPost, indexOfLastPost);
-
-  const nextPage = () => {
-    if (currentPage < Math.ceil(allPost.length / postsPerPage)) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
+  const totalPages = Math.ceil(allPost.length / postsPerPage);
 
   return (
     <>
@@ -81,33 +105,33 @@ function Home() {
               {/* Display Posts */}
               {currentPosts.length > 0 ? (
                 currentPosts.map((item) => (
-                  <div className='mt-8' key={item._id}> {/* Use _id as key */}
-                    <UserCard post={item} posts={posts} setPosts={setPosts} />
+                  <div className='mt-8' key={item._id}>
+                    <UserCard post={item} posts={allPost} setPosts={setAllPost} handleLike={handleLike} />
                   </div>
                 ))
               ) : (
-                <div className="text-center text-gray-500 mt-6">
-                  <p>No posts found.</p>
+                <div className="text-center h-full text-gray-500 mt-6">
+                  <h1 className='text-5xl'>No posts found.</h1>
                 </div>
               )}
 
-              {/* Pagination Controls - Only Show If Logged In */}
-              {isLoggedIn && allPost.length > postsPerPage && (
+              {/* Pagination Controls - Only Show If More Pages Exist */}
+              {isLoggedIn && totalPages > 1 && (
                 <div className="flex justify-center items-center space-x-4 mt-6">
                   <button
-                    onClick={prevPage}
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
                     className={`px-4 py-2 rounded-lg ${currentPage === 1 ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
                   >
                     Previous
                   </button>
                   <span className="text-gray-700">
-                    Page {currentPage} of {Math.max(1, Math.ceil(allPost.length / postsPerPage))}
+                    Page {currentPage} of {totalPages}
                   </span>
                   <button
-                    onClick={nextPage}
-                    disabled={currentPage >= Math.ceil(allPost.length / postsPerPage)}
-                    className={`px-4 py-2 rounded-lg ${currentPage >= Math.ceil(allPost.length / postsPerPage) ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage >= totalPages}
+                    className={`px-4 py-2 rounded-lg ${currentPage >= totalPages ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
                   >
                     Next
                   </button>

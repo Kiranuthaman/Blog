@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import AddPost from '../components/AddPost';
 import Header from '../components/Header';
 import { faAngleDown, faAngleUp, faComment, faHeart, faLock, faTrash, faUnlock, faUser } from '@fortawesome/free-solid-svg-icons';
@@ -6,13 +6,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import EditPost from '../components/EditPost';
 import { Button } from '@material-tailwind/react';
 import Comments from '../components/Comments';
-import { userPostAPI, userRemoveAPi } from '../service/allApi';
+import { setPubllicStatusapi, userPostAPI, userRemoveAPi } from '../service/allApi';
+import { addResponseContext, editProjectResponse } from '../context/ContextShare';
+import { toast } from 'react-toastify';
 
 function Dashboard() {
   const [userPosts, setUserPosts] = useState([]);
   const [showMoreState, setShowMoreState] = useState({});
   const [showCommentsState, setShowCommentsState] = useState({});
   const [removeStatus, setRemoveStatus] = useState(false);
+  const { addResponse } = useContext(addResponseContext);
+  const { editResponse } = useContext(editProjectResponse);
 
   const userData = sessionStorage.getItem("existingUsers");
   const user = userData ? JSON.parse(userData) : null;
@@ -39,7 +43,7 @@ function Dashboard() {
 
   useEffect(() => {
     fetchUserPosts();
-  }, [removeStatus]);
+  }, [removeStatus, addResponse, editResponse]);
 
   // Handle post deletion
   const handleDelete = async (id) => {
@@ -60,6 +64,33 @@ function Dashboard() {
       } catch (error) {
         console.error("Error deleting post:", error);
         alert('Error deleting post');
+      }
+    }
+  };
+
+  // Toggle Public Status
+  const togglePublicStatus = async (postId, currentStatus) => {
+    const newStatus = !currentStatus; 
+    const status = { Public: newStatus };
+
+    if (sessionStorage.getItem("token")) {
+      const token = sessionStorage.getItem("token");
+      const reqHeader = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+
+      try {
+        const result = await setPubllicStatusapi(postId, status, reqHeader);
+        if (result.status === 200) {
+          toast.success(`Post is now ${newStatus ? "Public" : "Private"}`);
+          fetchUserPosts(); // Refresh posts
+        } else {
+          alert('Failed to update visibility status');
+        }
+      } catch (error) {
+        console.error("Error updating status:", error);
+        alert('Error updating status');
       }
     }
   };
@@ -114,7 +145,7 @@ function Dashboard() {
                           {shouldShowMoreButton && (
                             <button 
                               className="text-blue-500" 
-                              onClick={(e) => { e.preventDefault(); setShowMoreState(prev => ({ ...prev, [postId]: !showMore })); }}
+                              onClick={() => setShowMoreState(prev => ({ ...prev, [postId]: !showMore }))}
                             >
                               {showMore ? "Show Less" : "Show More"} 
                               <FontAwesomeIcon icon={showMore ? faAngleUp : faAngleDown} style={{ color: "#165eda" }} />
@@ -137,8 +168,11 @@ function Dashboard() {
                             <Button className="bg-purple-500" onClick={() => handleDelete(postId)}>
                               <FontAwesomeIcon icon={faTrash} />
                             </Button>
-                            <FontAwesomeIcon icon={faLock} className="text-gray-700 cursor-pointer" />
-                            <FontAwesomeIcon icon={faUnlock} className="text-gray-700 cursor-pointer" />
+                            <FontAwesomeIcon 
+                              icon={post.public ? faUnlock : faLock} 
+                              onClick={() => togglePublicStatus(postId, post.public)} 
+                              className="text-gray-700 cursor-pointer" 
+                            />
                           </div>
                         </div>
 
@@ -154,6 +188,7 @@ function Dashboard() {
             </div>
           </div>
         </div>
+        
       </div>
     </>
   );

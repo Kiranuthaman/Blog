@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { faHeart, faComment, faAngleUp, faAngleDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Link } from 'react-router-dom';
 import { serverUrl } from '../service/serviceUrl';
 import { likePostApi } from '../service/allApi';
 import Comments from './Comments';
+import { likePostResponse } from '../context/ContextShare';
 
 function UserCard({ post, posts = [], setPosts = () => {} }) {
   const [showMore, setShowMore] = useState(false);
   const [showComments, setShowComments] = useState(false);
-  const [hasLiked, setHasLiked] = useState(false); // Track if the user has already liked the post
-
+  const [hasLiked, setHasLiked] = useState(false); 
   const description = post.content || "";
   const shouldShowMoreButton = description.length > 100;
+  const {setLikeResponse} = useContext(likePostResponse)
 
   // Handle Like Function (One like per user)
   const handleLike = async (postId) => {
@@ -31,6 +32,7 @@ function UserCard({ post, posts = [], setPosts = () => {} }) {
       const response = await likePostApi(postId, { "Content-Type": "application/json" });
 
       if (response && response.data && response.data.post) {
+        setLikeResponse(response)
         setPosts(posts.map((p) => (p._id === postId ? response.data.post : p)));
         setHasLiked(true); // Mark post as liked
       } else {

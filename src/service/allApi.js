@@ -49,5 +49,7 @@ export const getCommentsApi = async (postId, reqHeader) => {
   return await commonApi("GET", `${serverUrl}/postcomments/${postId}`, null, reqHeader);
 };
 
-
+export const setPubllicStatusapi = async (postId,status,reqheader)=>{
+  return await commonApi("PUT",`${serverUrl}/statusupdate/${postId}`,status,reqheader)
+}
 

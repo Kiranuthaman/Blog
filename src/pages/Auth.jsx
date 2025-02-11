@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loginApi, requestApi } from '../service/allApi';
 import { ToastContainer, toast } from 'react-toastify';
+import { loginresponseContext } from '../context/ContextShare';
 
 function Auth({ register }) {
   const [userDetails, setUserDetails] = useState({
@@ -10,7 +11,7 @@ function Auth({ register }) {
     password: ""
   });
 
-  const [loginResponse, setLoginResponse] = useState(false); // Added state
+  const {setLoginResponse} = useContext(loginresponseContext)
 
   console.log(userDetails);
 
@@ -79,7 +80,7 @@ function Auth({ register }) {
           }, 2000);
 
         } else if (result.status === 406) {
-          toast.error(result.response.status);
+          toast.error('Incorrect password or email');
         } else {
           toast.error('Something went wrong');
         }

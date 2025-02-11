@@ -1,1 +1,1 @@
-export const serverUrl = "http://localhost:4000"
+export const serverUrl = "https://blog-backend-01zn.onrender.com"
